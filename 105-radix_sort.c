@@ -1,76 +1,85 @@
 #include "sort.h"
+#include <stdlib.h>
 
 /**
- * radix_sort - sort array with radix method
- * @array: array to sort
- * @size: size of the array
+ * pow_10 - calculates a positive power of 10
+ * @power: power of 10 to calculate
  *
- * Return: nothing
-*/
-
-void radix_sort(int *array, size_t size)
+ * Return: the corresponding power of 10
+ */
+unsigned int pow_10(unsigned int power)
 {
-	int i, j, x, y, cantRep, max, div = 1, t = 0;
-	int buckets[10][1000];
+	unsigned int i, result;
 
-	if (!array || size < 2)
-		return;
-
-	max = array[0];
-	for (i = 1; i < (int) size; i++)
-		if (array[i] > max)
-			max = array[i];
-
-	for (i = 0; i < 10; ++i)
-		for (j = 0; j < 1000; ++j)
-			buckets[i][j] = -1;
-
-	cantRep = getCantRep(max);
-
-	for (i = 0; i < cantRep; ++i)
-	{
-		for (j = 0; j < (int) size; ++j)
-		{
-			for (y = 0; buckets[(array[j] / div) % 10][y] != -1; y++)
-				;
-			buckets[(array[j] / div) % 10][y] = array[j];
-		}
-		div = div * 10;
-		t = 0;
-		for (x = 0; x < 10; ++x)
-		{
-			for (y = 0; buckets[x][y] != -1; y++)
-			{
-				array[t] = buckets[x][y];
-				buckets[x][y] = -1;
-				t++;
-			}
-		}
-		print_array(array, size);
-	}
+	result = 1;
+	for (i = 0; i < power; i++)
+		result *= 10;
+	return (result);
 }
 
 /**
- * getCantRep - Returns the number of digits of the largest number in the array
- * @num: The largest number
+ * count_sort - sorts an array of integers in ascending order at a specific
+ * digit location using the Counting sort algorithm
+ * @array: array to sort
+ * @size: size of the array to sort
+ * @digit: digit to sort by
  *
- * Return: Number of digits of the num
-*/
-
-int getCantRep(int num)
+ * Return: 1 if there is a need to keep sorting, 0 if not
+ */
+unsigned int count_sort(int *array, size_t size, unsigned int digit)
 {
-	bool flag = true;
-	int cont = 0;
+	int i, count[10] = {0};
+	int *copy = NULL;
+	size_t j, temp, total = 0;
+	unsigned int dp1, dp2, sort = 0;
 
-	while (flag)
+	dp2 = pow_10(digit - 1);
+	dp1 = dp2 * 10;
+	copy = malloc(sizeof(int) * size);
+	if (copy == NULL)
+		exit(1);
+	for (j = 0; j < size; j++)
 	{
-		flag = false;
-		if (num > 0)
-		{
-			num = num / 10;
-			cont++;
-			flag = true;
-		}
+		copy[j] = array[j];
+		if (array[j] / dp1 != 0)
+			sort = 1;
 	}
-	return (cont);
+	for (i = 0; i < 10 ; i++)
+		count[i] = 0;
+	for (j = 0; j < size; j++)
+		count[(array[j] % dp1) / dp2] += 1;
+	for (i = 0; i < 10; i++)
+	{
+		temp = count[i];
+		count[i] = total;
+		total += temp;
+	}
+	for (j = 0; j < size; j++)
+	{
+		array[count[(copy[j] % dp1) / dp2]] = copy[j];
+		count[(copy[j] % dp1) / dp2] += 1;
+	}
+	free(copy);
+	return (sort);
+}
+
+/**
+ * radix_sort - sorts an array of integers in ascending order using
+ * the Radix sort algorithm
+ * @array: array to sort
+ * @size: size of the array
+ *
+ * Return: void
+ */
+void radix_sort(int *array, size_t size)
+{
+	unsigned int i, sort = 1;
+
+	if (array == NULL || size < 2)
+		return;
+	for (i = 1; sort == 1; i++)
+	{
+		sort = count_sort(array, size, i);
+		print_array(array, size);
+	}
 }
